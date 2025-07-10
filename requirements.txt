@@ -1,0 +1,5 @@
+flask
+pypdf2
+numpy
+faiss-cpu
+sentence-transformers

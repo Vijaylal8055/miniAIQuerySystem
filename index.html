@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+            width: 90%;
+            max-width: 700px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .chat-output {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap; /* Preserves whitespace and line breaks */
+            word-wrap: break-word; /* Breaks long words */
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #374151;
+        }
+        .input-area {
+            display: flex;
+            gap: 12px;
+        }
+        .input-area input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s ease-in-out;
+        }
+        .input-area input[type="text"]:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        .input-area button {
+            background-color: #6366f1;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            font-weight: 500;
+        }
+        .input-area button:hover {
+            background-color: #4f46e5;
+        }
+        .input-area button:active {
+            transform: scale(0.98);
+        }
+        .loading-indicator {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 10px;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center text-gray-800">mini AI Query System</h1>
+        <div id="chat-output" class="chat-output">
+            Welcome! Ask me anything about the documents.
+        </div>
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Type your query here...">
+            <button id="send-button">Send</button>
+        </div>
+        <div id="loading-indicator" class="loading-indicator">
+            Processing your query...
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const chatOutput = document.getElementById('chat-output');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            async function sendMessage() {
+                const query = userInput.value.trim();
+                if (!query) {
+                    return;
+                }
+
+                // Append user message to chat output
+                chatOutput.innerHTML += `<div class="text-right text-blue-700 mb-2"><strong>You:</strong> ${query}</div>`;
+                userInput.value = ''; // Clear input field
+
+                loadingIndicator.style.display = 'block'; // Show loading indicator
+                sendButton.disabled = true; // Disable button during processing
+
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ query: query }),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.response || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    // Append bot response to chat output
+                    chatOutput.innerHTML += `<div class="text-left text-gray-800 mb-2"><strong>Bot:</strong> ${data.response}</div>`;
+                    chatOutput.scrollTop = chatOutput.scrollHeight; // Scroll to bottom
+                } catch (error) {
+                    console.error('Error:', error);
+                    chatOutput.innerHTML += `<div class="text-left text-red-600 mb-2"><strong>Error:</strong> ${error.message}. Please try again.</div>`;
+                } finally {
+                    loadingIndicator.style.display = 'none'; // Hide loading indicator
+                    sendButton.disabled = false; // Re-enable button
+                    userInput.focus(); // Focus input for next query
+                }
+            }
+        });
+    </script>
+</body>
+</html>
